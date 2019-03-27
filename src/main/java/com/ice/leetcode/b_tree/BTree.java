@@ -88,6 +88,12 @@ public class BTree {
         node.parent = parentNode;
         node.leaf = true;
         node.keys.addAll(keys);
+        if (!childNode.children.isEmpty()) {//将子节点移动到新节点中
+            for (int i = 0; i <= childNode.children.size() / 2; i++) {
+                BTreeNode bTreeNode = childNode.children.remove(0);
+                node.children.add(bTreeNode);
+            }
+        }
 
         if (parentNode == null) {//分裂的上级节点为空，则需要生成一个
             root = new BTreeNode();
@@ -114,7 +120,7 @@ public class BTree {
         BTreeNode node = result.node;
         if (node.leaf) {
             node.removeKey(key);
-            if (node.size() > maxKeySize) {
+            if (node.size() > minKeySize) {
                 return 1;
             } else {
                 //合并左节点
@@ -185,6 +191,93 @@ public class BTree {
             kNode.addKey(node.keys.get(i));
         }
         parent.removeChild(in + 1);//移除节点
+        //判断上级节点
+        if (parent.keys.size() < minKeySize) {
+            unionParent(parent);
+        }
+    }
+
+    public void unionParent(BTreeNode node) {
+        if (node.parent == null) {
+            return;
+        }
+        Integer min = node.keys.get(0);
+        BTreeNode parent = node.parent;
+        //找到当前节点的位置
+        Integer index = -1;
+        for (int i = parent.keys.size() - 1; i >= 0; i--) {
+            if (min > parent.keys.get(i)) {
+                index = i;
+                break;
+            }
+        }
+        Integer parentValue = null;
+        if (index != -1) {
+            parentValue = parent.keys.get(index);
+        } else {
+            parentValue = parent.keys.get(index + 1);
+        }
+        if (index != -1 && parent.children.get(index).keys.size() > minKeySize) {
+            //判断左节点是否富余
+            BTreeNode left = parent.children.get(index);
+            Integer max = left.keys.get(left.size() - 1);
+            parent.keys.add(index, max);
+            node.addKey(parentValue);
+            node.addChild(left.children.get(left.children.size() - 1), 0);
+        } else if ((index == -1 && parent.children.get(index + 2).keys.size() > minKeySize) || (index < parent.keys.size() - 1 && parent.children.get(index + 1).keys.size() > minKeySize)) {
+            //判断右节点是否富余
+            BTreeNode right = parent.children.get(index + 1);
+            Integer m = right.keys.get(0);
+            parent.keys.add(index, m);
+            node.addKey(parentValue);
+            node.addChild(right.children.get(0));
+        } else {
+            //合并
+            if (index == -1) {
+                //合并到右节点
+                BTreeNode right = parent.children.get(index + 2);
+                Integer pa = parent.keys.remove(index + 1);
+                right.addKey(pa);
+                for (int i = 0; i < node.keys.size(); i++) {
+                    right.addKey(node.keys.get(i));
+                }
+                List<BTreeNode> bTreeNodes = new ArrayList<>();
+                for (int i = 0; i < node.children.size(); i++) {
+                    bTreeNodes.add(node.children.get(i));
+                }
+                System.out.println();
+                for (int i = 0; i < right.children.size(); i++) {
+                    bTreeNodes.add(right.children.get(i));
+                }
+                right.children = bTreeNodes;
+                parent.children.remove(index + 1);//移除该节点
+                if (parent.keys.isEmpty()) {//节点为空
+                    root = right;
+                    return;
+                }
+            } else {
+                //合并到左节点
+                //找到父级节点下沉,并将该节点所有添加到左节点中
+                BTreeNode left = parent.children.get(index);
+                Integer max = parent.keys.remove(index.intValue());
+                left.addKey(max);
+                for (int i = 0; i < node.keys.size(); i++) {
+                    left.addKey(node.keys.get(i));
+                }
+                for (int i = 0; i < node.children.size(); i++) {
+                    left.children.add(node.children.get(i));
+                }
+                parent.children.remove(index + 1);//移除该节点
+                if (parent.keys.isEmpty()) {//节点为空
+                    root = left;
+                    return;
+                }
+            }
+        }
+        //判断上级节点
+        if (parent.keys.size() < minKeySize) {
+            union(parent);
+        }
     }
 
     private boolean isFull(BTreeNode node) {
@@ -228,7 +321,11 @@ public class BTree {
         tree.insert(37);
         tree.insert(38);
         tree.outPut();
-        int search = tree.search(10);
-        System.out.println(search);
+
+
+        System.out.println("-------------------------------------------");
+        tree.delete(38);
+        tree.delete(37);
+        tree.outPut();
     }
 }
