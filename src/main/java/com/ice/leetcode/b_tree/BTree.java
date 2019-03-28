@@ -26,7 +26,7 @@ public class BTree {
     public BTree(int t) {
         this();
         this.t = t;
-        minKeySize = (int) (Math.ceil(t / 2) - 1);
+        minKeySize = t / 2;
         maxKeySize = t - 1;
     }
 
@@ -86,7 +86,7 @@ public class BTree {
         }
         BTreeNode node = new BTreeNode();
         node.parent = parentNode;
-        node.leaf = true;
+        node.leaf = childNode.children.isEmpty();
         node.keys.addAll(keys);
         if (!childNode.children.isEmpty()) {//将子节点移动到新节点中
             for (int i = 0; i <= childNode.children.size() / 2; i++) {
@@ -148,7 +148,7 @@ public class BTree {
             }
             //判断左右兄弟节点是否大于最小键子树
             BTreeNode left = node.children.get(index - 1);
-            if (left.keys.size() != minKeySize) {//
+            if (left.keys.size() > minKeySize) {//
                 Integer leftKey = left.keys.remove(left.size() - 1);
                 node.removeKey(replace);
                 successorNode.addKey(replace);
@@ -183,6 +183,7 @@ public class BTree {
             BTreeNode child = parent.children.get(i);
             if (k > child.keys.get(child.size() - 1)) {
                 kNode = child;
+                break;
             }
         }
         //
